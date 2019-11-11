@@ -14,7 +14,10 @@
 		<property name="user" value="root"></property>
 		<property name="password" value="root"></property>
 		<property name="driverClass" value="com.mysql.jdbc.Driver"></property>
-		<property name="jdbcUrl" value="mysql:///test"></property>
+		<property name="jdbcUrl" value="jdbc:mysql:///test"></property>
+		
+		<property name="initialPoolSize" value="5"></property>
+		<property name="maxPoolSize" value="10"></property>
 	</bean>
 	
 	<!-- 配置SessionFactory -->
@@ -33,5 +36,47 @@
 		
 		<!-- 配置映射文件 -->
 		<property name="mappingLocations" value="classpath:com/ssh/model/*.hbm.xml"></property>
+	</bean>
+	
+	<!-- 配置 Spring 的声明式事务 -->
+	<!-- 1、配置hibernate 的事务管理器 -->
+	<bean id="transactionManager" class="org.springframework.orm.hibernate4.HibernateTransactionManager">
+		<property name="sessionFactory" ref="sessionFactory"></property>
+	</bean>
+	<tx:annotation-driven transaction-manager="transactionManager"/>
+	
+	<!-- 2、配置事务属性 -->
+	<tx:advice id="txAdvice" transaction-manager="transactionManager">
+		<tx:attributes>
+			<tx:method name="get*" read-only="true"/>
+			<!-- <tx:method name="list*" propagation="SUPPORTS" read-only="true"/> -->
+			<tx:method name="*"/>
+		</tx:attributes>
+	</tx:advice>
+	
+	<!-- 3、配置事务切入点 再把事务属性和事务切入点关联起来 -->	
+	<aop:config>
+		<aop:pointcut expression="execution(* com.SSH.service.*.*(..))" id="txPointcut"/>
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="txPointcut"/>
+	</aop:config>
+	
+	<!-- 配置文件 -->
+	<bean id="employeeDao" class="com.ssh.dao.EmployeeDao">
+		<property name="sessionFactory" ref="sessionFactory"></property>
+	</bean>
+	<bean id="departmentDao" class="com.ssh.dao.DepartmentDao">
+		<property name="sessionFactory" ref="sessionFactory"></property>
+	</bean>
+	
+	<bean id="employeeService" class="com.ssh.service.EmployeeService">
+		<property name="employeeDao" ref="employeeDao"></property>
+	</bean>
+	<bean id="departmentService" class="com.ssh.service.DepartmentService">
+		<property name="departmentDao" ref="departmentDao"></property>
+	</bean>
+	
+	<bean id="employeeAction" class="com.ssh.action.EmployeeAction" scope="prototype">
+		<property name="employeeService" ref="employeeService"></property>
+		<property name="departmentService" ref="departmentService"></property>
 	</bean>
 </beans> 
